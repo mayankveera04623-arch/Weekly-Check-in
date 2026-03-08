@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>KickFit Plus — Weekly Check-In</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #E53E1A;
+    --red-dark: #B02E0F;
+    --red-glow: rgba(229,62,26,0.18);
+    --dark: #0E0C0A;
+    --dark2: #1A1714;
+    --card: #1E1B17;
+    --border: rgba(255,255,255,0.08);
+    --white: #FAFAF8;
+    --muted: rgba(250,250,248,0.45);
+    --muted2: rgba(250,250,248,0.22);
+    --green: #2ECC71;
+    --amber: #F39C12;
+    --blue: #3498DB;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--dark);
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse at 10% 15%, rgba(229,62,26,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 85%, rgba(229,62,26,0.05) 0%, transparent 55%);
+    pointer-events:none; z-index:0;
+  }
+
+  /* HEADER */
+  .header {
+    position:relative; z-index:10;
+    padding: 22px 20px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1px; line-height:1; }
+  .logo .kick { color:var(--white); }
+  .logo .fit  { color:var(--red); }
+  .logo .plus {
+    background:var(--red); color:var(--white);
+    font-size:10px; padding:2px 6px; border-radius:3px;
+    font-family:'Outfit',sans-serif; font-weight:700; letter-spacing:0.1em;
+    vertical-align:middle; margin-left:4px; position:relative; top:-2px;
+  }
+  .week-badge {
+    font-size:11px; font-weight:600; color:var(--muted);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    padding: 5px 12px; border-radius:20px;
+    letter-spacing:0.05em;
+  }
+  .week-badge span { color:var(--red); }
+
+  /* PROGRESS */
+  .progress-track { position:relative; z-index:10; height:3px; background:var(--border); }
+  .progress-fill {
+    height:100%; background:var(--red);
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 0 10px var(--red-glow);
+  }
+
+  /* STREAK BAR */
+  .streak-bar {
+    position:relative; z-index:10;
+    background: linear-gradient(135deg, #1A1714, #221E19);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .streak-item { text-align:center; }
+  .streak-label { font-size:10px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted2); margin-bottom:3px; }
+  .streak-val { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--white); letter-spacing:1px; }
+  .streak-val.red { color:var(--red); }
+  .streak-divider { width:1px; height:32px; background:var(--border); }
+
+  /* WRAP */
+  .form-wrap { position:relative; z-index:5; max-width:560px; margin:0 auto; padding:0 20px 100px; }
+
+  /* STEP */
+  .step { display:none; animation: fadeUp 0.32s ease forwards; }
+  .step.active { display:block; }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(18px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .step-head { padding:36px 0 24px; }
+  .step-tag {
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--red); margin-bottom:12px;
+  }
+  .step-tag::before { content:''; width:16px; height:2px; background:var(--red); border-radius:2px; }
+  .step-q { font-size:clamp(20px,5vw,28px); font-weight:700; line-height:1.25; color:var(--white); margin-bottom:8px; }
+  .step-hint { font-size:13px; color:var(--muted); line-height:1.5; }
+
+  /* OPTIONS */
+  .options { display:flex; flex-direction:column; gap:9px; }
+  .options.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+
+  .opt { position:relative; cursor:pointer; }
+  .opt input { position:absolute; opacity:0; width:0; height:0; }
+  .opt-face {
+    display:flex; align-items:center; gap:12px;
+    padding:15px 16px;
+    background:var(--card); border:1.5px solid var(--border); border-radius:13px;
+    transition:all 0.16s;
+    font-size:14px; font-weight:500; color:var(--white); line-height:1.3; min-height:52px;
+  }
+  .opt-face .oi { font-size:20px; flex-shrink:0; }
+  .opt-face .os { font-size:12px; color:var(--muted); font-weight:400; margin-top:2px; display:block; }
+  .opt input:checked + .opt-face {
+    border-color:var(--red); background:rgba(229,62,26,0.1);
+    box-shadow:0 0 0 1px var(--red), 0 4px 18px rgba(229,62,26,0.15);
+  }
+  .opt:hover .opt-face { border-color:rgba(229,62,26,0.4); background:rgba(255,255,255,0.03); }
+
+  /* color variants for emoji-free options */
+  .opt.good input:checked + .opt-face { border-color:var(--green); background:rgba(46,204,113,0.1); box-shadow:0 0 0 1px var(--green); }
+  .opt.ok input:checked + .opt-face { border-color:var(--amber); background:rgba(243,156,18,0.1); box-shadow:0 0 0 1px var(--amber); }
+  .opt.bad input:checked + .opt-face { border-color:#E74C3C; background:rgba(231,76,60,0.1); box-shadow:0 0 0 1px #E74C3C; }
+
+  .options.grid2 .opt-face { flex-direction:column; text-align:center; justify-content:center; gap:5px; padding:16px 10px; }
+
+  /* FIELDS */
+  .field { margin-bottom:14px; }
+  .field label {
+    display:block; font-size:12px; font-weight:600; color:var(--muted);
+    letter-spacing:0.06em; margin-bottom:7px; text-transform:uppercase;
+  }
+  .field input, .field select, .field textarea {
+    width:100%; background:var(--card); border:1.5px solid var(--border);
+    border-radius:11px; padding:14px 16px;
+    font-family:'Outfit',sans-serif; font-size:14px; font-weight:400; color:var(--white);
+    outline:none; transition:border-color 0.2s; -webkit-appearance:none;
+  }
+  .field input::placeholder, .field textarea::placeholder { color:var(--muted2); }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color:var(--red); }
+  .field select option { background:var(--dark2); color:var(--white); }
+  .field textarea { resize:none; height:100px; }
+  .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  @media(max-width:380px){ .field-row { grid-template-columns:1fr; } }
+
+  /* CHECKBOXES */
+  .check-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .chk { position:relative; cursor:pointer; }
+  .chk input { position:absolute; opacity:0; width:0; height:0; }
+  .chk-face {
+    display:flex; align-items:center; gap:9px;
+    padding:12px 13px; background:var(--card); border:1.5px solid var(--border);
+    border-radius:9px; font-size:13px; font-weight:500; color:var(--muted); transition:all 0.14s;
+  }
+  .chk-face::before {
+    content:''; width:15px; height:15px; border-radius:4px;
+    border:1.5px solid var(--border); flex-shrink:0; transition:all 0.14s;
+    font-size:9px; display:flex; align-items:center; justify-content:center;
+  }
+  .chk input:checked + .chk-face { border-color:var(--red); background:rgba(229,62,26,0.08); color:var(--white); }
+  .chk input:checked + .chk-face::before { background:var(--red); border-color:var(--red); content:'✓'; color:white; }
+
+  /* SCALE */
+  .scale-wrap { margin-top:6px; }
+  .scale-track { display:flex; align-items:center; gap:12px; margin-bottom:7px; }
+  .scale-track input[type=range] { flex:1; height:5px; accent-color:var(--red); cursor:pointer; background:var(--border); border-radius:3px; border:none; padding:0; }
+  .scale-num { font-size:20px; font-weight:700; color:var(--red); min-width:28px; text-align:center; }
+  .scale-labels { display:flex; justify-content:space-between; font-size:11px; color:var(--muted2); }
+
+  /* WEIGHT VISUAL */
+  .weight-display {
+    text-align:center; padding:24px 0 16px;
+  }
+  .weight-big {
+    font-family:'Bebas Neue',sans-serif; font-size:72px; letter-spacing:2px;
+    color:var(--white); line-height:1;
+  }
+  .weight-big span { color:var(--red); font-size:36px; }
+  .weight-sub { font-size:13px; color:var(--muted); margin-top:6px; }
+
+  /* PHOTO UPLOAD */
+  .photo-zone {
+    border: 2px dashed rgba(229,62,26,0.3);
+    border-radius:14px; padding:28px 20px;
+    text-align:center; cursor:pointer;
+    background: rgba(229,62,26,0.03);
+    transition:all 0.2s;
+  }
+  .photo-zone:hover { border-color:var(--red); background:rgba(229,62,26,0.06); }
+  .photo-zone-icon { font-size:36px; margin-bottom:10px; }
+  .photo-zone-text { font-size:14px; color:var(--muted); }
+  .photo-zone-sub { font-size:11px; color:var(--muted2); margin-top:5px; }
+  .photo-zone input { display:none; }
+
+  /* SECTION label */
+  .mini-section {
+    font-size:11px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase;
+    color:var(--red); margin:20px 0 10px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .mini-section::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* NAV */
+  .nav { display:flex; gap:10px; margin-top:28px; padding-bottom:20px; }
+  .btn-back {
+    width:50px; height:50px; border-radius:50%;
+    background:var(--card); border:1.5px solid var(--border);
+    color:var(--muted); font-size:18px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:all 0.2s; flex-shrink:0;
+  }
+  .btn-back:hover { border-color:var(--red); color:var(--white); }
+  .btn-next {
+    flex:1; height:50px; border-radius:13px; background:var(--red); border:none;
+    color:var(--white); font-family:'Outfit',sans-serif; font-size:15px; font-weight:700;
+    letter-spacing:0.04em; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:all 0.2s; box-shadow:0 4px 18px rgba(229,62,26,0.28);
+  }
+  .btn-next:hover { background:var(--red-dark); transform:translateY(-1px); }
+  .btn-next:active { transform:none; }
+  .btn-submit { background:linear-gradient(135deg,#E53E1A,#FF6B35); }
+
+  /* SKIP */
+  .skip-link { text-align:center; margin-top:12px; font-size:12px; color:var(--muted2); cursor:pointer; }
+  .skip-link:hover { color:var(--muted); }
+
+  /* SUCCESS */
+  .success-screen {
+    display:none; min-height:85vh;
+    align-items:center; justify-content:center; flex-direction:column;
+    text-align:center; padding:40px 24px;
+    position:relative; z-index:5;
+  }
+  .success-screen.show { display:flex; }
+  .success-burst { font-size:64px; margin-bottom:20px; animation:burst 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes burst { from{transform:scale(0);opacity:0;} to{transform:scale(1);opacity:1;} }
+  .success-screen h2 { font-family:'Bebas Neue',sans-serif; font-size:44px; letter-spacing:2px; margin-bottom:10px; }
+  .success-screen p { font-size:14px; color:var(--muted); max-width:300px; line-height:1.6; }
+  .success-screen strong { color:var(--red); }
+
+  /* CONDITION TAG shown on steps */
+  .cond-pill {
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11px; font-weight:600; background:rgba(229,62,26,0.12);
+    border:1px solid rgba(229,62,26,0.25); color:var(--red);
+    padding:4px 10px; border-radius:20px; margin-bottom:16px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo"><span class="kick">KICK</span><span class="fit">FIT</span><span class="plus">PLUS</span></div>
+  <div class="week-badge">Week <span id="weekNum">—</span> Check-In</div>
+</div>
+<div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+<!-- STREAK BAR -->
+<div class="streak-bar">
+  <div class="streak-item">
+    <div class="streak-label">Step</div>
+    <div class="streak-val red" id="stepNum">1</div>
+  </div>
+  <div class="streak-divider"></div>
+  <div class="streak-item">
+    <div class="streak-label">Total</div>
+    <div class="streak-val" id="stepTotal">—</div>
+  </div>
+  <div class="streak-divider"></div>
+  <div class="streak-item">
+    <div class="streak-label">Goal</div>
+    <div class="streak-val" id="goalBadge" style="font-size:14px; font-family:'Outfit',sans-serif; font-weight:700;">—</div>
+  </div>
+</div>
+
+<div class="form-wrap" id="formWrap">
+
+  <!-- ====== STEP: NAME ====== -->
+  <div class="step active" data-id="name">
+    <div class="step-head">
+      <div class="step-tag">Weekly Check-In</div>
+      <div class="step-q">Hey! What's your name?</div>
+      <div class="step-hint">Let's pull up your profile</div>
+    </div>
+    <div class="field"><label>Full Name</label><input type="text" id="q_name" placeholder="e.g. Priya Sharma" autocomplete="name"></div>
+    <div class="field"><label>Week Number</label>
+      <select id="q_week" onchange="document.getElementById('weekNum').textContent=this.value">
+        <option value="">Select your week</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option>
+        <option>5</option><option>6</option><option>7</option><option>8</option>
+        <option>9</option><option>10</option><option>11</option><option>12</option>
+        <option>13</option><option>14</option><option>15</option><option>16</option>
+      </select>
+    </div>
+    <div class="nav"><button class="btn-next" onclick="next()">Let's Go →</button></div>
+  </div>
+
+  <!-- ====== STEP: GOAL SELECT (BRANCH POINT) ====== -->
+  <div class="step" data-id="goal">
+    <div class="step-head">
+      <div class="step-tag">Your Goal</div>
+      <div class="step-q">What is your transformation goal?</div>
+      <div class="step-hint">Your check-in questions will be tailored to this</div>
+    </div>
+    <div class="options">
+      <label class="opt"><input type="radio" name="goal" value="pcod" onclick="setGoal('pcod')">
+        <div class="opt-face"><span class="oi">🌸</span><div><div>PCOD / PCOS Management</div><span class="os">Hormonal balance & cycle health</span></div></div></label>
+      <label class="opt"><input type="radio" name="goal" value="diabetes" onclick="setGoal('diabetes')">
+        <div class="opt-face"><span class="oi">🩺</span><div><div>Type 2 Diabetes Control</div><span class="os">Blood sugar & metabolic health</span></div></div></label>
+      <label class="opt"><input type="radio" name="goal" value="weightloss" onclick="setGoal('weightloss')">
+        <div class="opt-face"><span class="oi">⚖️</span><div><div>Weight Loss</div><span class="os">Fat loss & body transformation</span></div></div></label>
+      <label class="opt"><input type="radio" name="goal" value="muscle" onclick="setGoal('muscle')">
+        <div class="opt-face"><span class="oi">💪</span><div><div>Muscle Gain / Healthy Living</div><span class="os">Strength & performance</span></div></div></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- ====== SHARED: WEIGHT ====== -->
+  <div class="step" data-id="weight">
+    <div class="step-head">
+      <div class="step-tag">Body Stats</div>
+      <div class="step-q">This week's weight</div>
+      <div class="step-hint">Weigh yourself first thing in the morning, before food</div>
+    </div>
+    <div class="field">
+      <label>Current Weight (kg)</label>
+      <input type="number" id="q_weight" placeholder="e.g. 72.4" step="0.1" oninput="updateWeightDisplay(this.value)">
+    </div>
+    <div class="weight-display">
+      <div class="weight-big" id="weightDisplay">—<span>kg</span></div>
+      <div class="weight-sub" id="weightChange">Enter your weight above</div>
+    </div>
+    <div class="field"><label>Last week's weight (kg) — for reference</label><input type="number" id="q_last_weight" placeholder="e.g. 73.1" step="0.1" oninput="calcChange()"></div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- ====== SHARED: COMPLIANCE ====== -->
+  <div class="step" data-id="compliance">
+    <div class="step-head">
+      <div class="step-tag">Plan Compliance</div>
+      <div class="step-q">How well did you follow your nutrition plan this week?</div>
+    </div>
+    <div class="options">
+      <label class="opt good"><input type="radio" name="diet_compliance" value="100%">
+        <div class="opt-face"><span class="oi">🟢</span><div><div>100% — Followed perfectly</div><span class="os">No deviations at all</span></div></div></label>
+      <label class="opt good"><input type="radio" name="diet_compliance" value="80–90%">
+        <div class="opt-face"><span class="oi">✅</span><div><div>80–90% — Almost perfect</div><span class="os">1–2 small slip-ups</span></div></div></label>
+      <label class="opt ok"><input type="radio" name="diet_compliance" value="60–70%">
+        <div class="opt-face"><span class="oi">🟡</span><div><div>60–70% — Decent effort</div><span class="os">Some meals went off-plan</span></div></div></label>
+      <label class="opt bad"><input type="radio" name="diet_compliance" value="Below 60%">
+        <div class="opt-face"><span class="oi">🔴</span><div><div>Below 60% — Struggled</div><span class="os">Most meals were off-plan</span></div></div></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="workout_compliance">
+    <div class="step-head">
+      <div class="step-tag">Plan Compliance</div>
+      <div class="step-q">How many workouts did you complete this week?</div>
+    </div>
+    <div class="options grid2">
+      <label class="opt bad"><input type="radio" name="workout_done" value="0"><div class="opt-face"><span class="oi">😔</span>0 workouts</div></label>
+      <label class="opt ok"><input type="radio" name="workout_done" value="1"><div class="opt-face"><span class="oi">1️⃣</span>1 workout</div></label>
+      <label class="opt ok"><input type="radio" name="workout_done" value="2"><div class="opt-face"><span class="oi">2️⃣</span>2 workouts</div></label>
+      <label class="opt good"><input type="radio" name="workout_done" value="3"><div class="opt-face"><span class="oi">3️⃣</span>3 workouts</div></label>
+      <label class="opt good"><input type="radio" name="workout_done" value="4"><div class="opt-face"><span class="oi">4️⃣</span>4 workouts</div></label>
+      <label class="opt good"><input type="radio" name="workout_done" value="5+"><div class="opt-face"><span class="oi">🔥</span>5+ workouts</div></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- ====== PCOD TRACK ====== -->
+  <div class="step" data-id="pcod_hormones" data-track="pcod">
+    <div class="step-head">
+      <div class="cond-pill">🌸 PCOD / PCOS</div>
+      <div class="step-q">How was your cycle & hormonal health this week?</div>
+    </div>
+    <div class="options">
+      <label class="opt"><input type="radio" name="cycle_week" value="On period"><div class="opt-face"><span class="oi">🩸</span>On my period this week</div></label>
+      <label class="opt"><input type="radio" name="cycle_week" value="Pre-period symptoms"><div class="opt-face"><span class="oi">😣</span>Pre-period / PMS symptoms</div></label>
+      <label class="opt"><input type="radio" name="cycle_week" value="Normal week"><div class="opt-face"><span class="oi">✅</span>Normal week, no symptoms</div></label>
+      <label class="opt"><input type="radio" name="cycle_week" value="Irregular this week"><div class="opt-face"><span class="oi">❓</span>Cycle was irregular / unexpected</div></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="pcod_symptoms" data-track="pcod">
+    <div class="step-head">
+      <div class="cond-pill">🌸 PCOD / PCOS</div>
+      <div class="step-q">Any PCOS symptoms this week?</div>
+      <div class="step-hint">Select all that apply</div>
+    </div>
+    <div class="check-grid">
+      <label class="chk"><input type="checkbox" name="pcod_sym_w" value="Bloating"><span class="chk-face">Bloating</span></label>
+      <label class="chk"><input type="checkbox" name="pcod_sym_w" value="Mood swings"><span class="chk-face">Mood Swings</span></label>
+      <label class="chk"><input type="checkbox" name="pcod_sym_w" value="Acne flare"><span class="chk-face">Acne Flare</span></label>
+      <label class="chk"><input type="checkbox" name="pcod_sym_w" value="Hair fall"><span class="chk-face">Hair Fall</span></label>
+      <label class="chk"><input type="checkbox" name="pcod_sym_w" value="Sugar cravings"><span class="chk-face">Sugar Cravings</span></label>
+      <label class="chk"><input type="checkbox" name="pcod_sym_w" value="Fatigue"><span class="chk-face">Fatigue</span></label>
+      <label class="chk"><input type="checkbox" name="pcod_sym_w" value="None"><span class="chk-face">None this week 🎉</span></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="pcod_cravings" data-track="pcod">
+    <div class="step-head">
+      <div class="cond-pill">🌸 PCOD / PCOS</div>
+      <div class="step-q">How were your sugar & carb cravings this week?</div>
+    </div>
+    <div class="options">
+      <label class="opt good"><input type="radio" name="cravings" value="None"><div class="opt-face"><span class="oi">💚</span><div><div>None — felt fully in control</div></div></div></label>
+      <label class="opt good"><input type="radio" name="cravings" value="Mild"><div class="opt-face"><span class="oi">😊</span><div><div>Mild — resisted most of the time</div></div></div></label>
+      <label class="opt ok"><input type="radio" name="cravings" value="Moderate"><div class="opt-face"><span class="oi">😐</span><div><div>Moderate — gave in a few times</div></div></div></label>
+      <label class="opt bad"><input type="radio" name="cravings" value="Strong"><div class="opt-face"><span class="oi">😣</span><div><div>Strong — very hard to resist</div></div></div></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- ====== DIABETES TRACK ====== -->
+  <div class="step" data-id="dm_sugar" data-track="diabetes">
+    <div class="step-head">
+      <div class="cond-pill">🩺 Type 2 Diabetes</div>
+      <div class="step-q">Blood sugar readings this week</div>
+      <div class="step-hint">Average or most recent values are fine</div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Fasting BS (mg/dL)</label><input type="number" id="q_fbs_w" placeholder="e.g. 112"></div>
+      <div class="field"><label>Post-Meal BS (mg/dL)</label><input type="number" id="q_ppbs_w" placeholder="e.g. 155"></div>
+    </div>
+    <div class="field"><label>Any hypoglycemia episodes this week?</label>
+      <select id="q_hypo"><option value="">Select</option><option>No episodes</option><option>1 episode</option><option>2–3 episodes</option><option>More than 3</option></select>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="dm_meds" data-track="diabetes">
+    <div class="step-head">
+      <div class="cond-pill">🩺 Type 2 Diabetes</div>
+      <div class="step-q">Medication & monitoring compliance</div>
+    </div>
+    <div class="options">
+      <label class="opt good"><input type="radio" name="med_compliance" value="All doses taken"><div class="opt-face"><span class="oi">✅</span>Took all medications on time</div></label>
+      <label class="opt ok"><input type="radio" name="med_compliance" value="Missed 1–2 doses"><div class="opt-face"><span class="oi">⚠️</span>Missed 1–2 doses</div></label>
+      <label class="opt bad"><input type="radio" name="med_compliance" value="Missed multiple"><div class="opt-face"><span class="oi">❌</span>Missed multiple doses</div></label>
+    </div>
+    <div class="field" style="margin-top:16px;"><label>Any changes in medication or doctor visit?</label>
+      <input type="text" id="q_dm_update" placeholder="e.g. Doctor reduced Metformin dosage…">
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="dm_symptoms" data-track="diabetes">
+    <div class="step-head">
+      <div class="cond-pill">🩺 Type 2 Diabetes</div>
+      <div class="step-q">Any symptoms this week?</div>
+      <div class="step-hint">Select all that apply</div>
+    </div>
+    <div class="check-grid">
+      <label class="chk"><input type="checkbox" name="dm_sym_w" value="Excessive thirst"><span class="chk-face">Excessive thirst</span></label>
+      <label class="chk"><input type="checkbox" name="dm_sym_w" value="Frequent urination"><span class="chk-face">Frequent urination</span></label>
+      <label class="chk"><input type="checkbox" name="dm_sym_w" value="Fatigue"><span class="chk-face">Fatigue</span></label>
+      <label class="chk"><input type="checkbox" name="dm_sym_w" value="Blurred vision"><span class="chk-face">Blurred vision</span></label>
+      <label class="chk"><input type="checkbox" name="dm_sym_w" value="Tingling feet"><span class="chk-face">Tingling in feet</span></label>
+      <label class="chk"><input type="checkbox" name="dm_sym_w" value="None"><span class="chk-face">None this week 🎉</span></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- ====== WEIGHT LOSS TRACK ====== -->
+  <div class="step" data-id="wl_hunger" data-track="weightloss">
+    <div class="step-head">
+      <div class="cond-pill">⚖️ Weight Loss</div>
+      <div class="step-q">How were your hunger levels this week?</div>
+    </div>
+    <div class="options">
+      <label class="opt good"><input type="radio" name="hunger" value="Well controlled"><div class="opt-face"><span class="oi">💚</span><div><div>Well controlled — felt satisfied</div></div></div></label>
+      <label class="opt ok"><input type="radio" name="hunger" value="Occasional hunger"><div class="opt-face"><span class="oi">😐</span><div><div>Occasional hunger pangs</div></div></div></label>
+      <label class="opt bad"><input type="radio" name="hunger" value="Very hungry"><div class="opt-face"><span class="oi">😣</span><div><div>Very hungry — plan felt too restrictive</div></div></div></label>
+      <label class="opt bad"><input type="radio" name="hunger" value="Overate"><div class="opt-face"><span class="oi">🍕</span><div><div>Overate / binge ate this week</div></div></div></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="wl_cheats" data-track="weightloss">
+    <div class="step-head">
+      <div class="cond-pill">⚖️ Weight Loss</div>
+      <div class="step-q">Any cheat meals or off-plan eating?</div>
+    </div>
+    <div class="options">
+      <label class="opt good"><input type="radio" name="cheat" value="None"><div class="opt-face"><span class="oi">🏆</span>Zero — fully on plan all week</div></label>
+      <label class="opt good"><input type="radio" name="cheat" value="1 cheat meal"><div class="opt-face"><span class="oi">✅</span>1 planned cheat meal</div></label>
+      <label class="opt ok"><input type="radio" name="cheat" value="2–3 slip-ups"><div class="opt-face"><span class="oi">⚠️</span>2–3 unplanned slip-ups</div></label>
+      <label class="opt bad"><input type="radio" name="cheat" value="Multiple days off"><div class="opt-face"><span class="oi">❌</span>Multiple days off plan</div></label>
+    </div>
+    <div class="field" style="margin-top:14px;"><label>What did you eat off-plan? (optional)</label>
+      <input type="text" id="q_cheat_food" placeholder="e.g. Birthday party, pizza on Friday…">
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="wl_measurements" data-track="weightloss">
+    <div class="step-head">
+      <div class="cond-pill">⚖️ Weight Loss</div>
+      <div class="step-q">Body measurements this week</div>
+      <div class="step-hint">Optional but very helpful to track real progress</div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Waist (inches)</label><input type="number" id="q_waist" placeholder="e.g. 34" step="0.5"></div>
+      <div class="field"><label>Hips (inches)</label><input type="number" id="q_hips" placeholder="e.g. 40" step="0.5"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Chest (inches)</label><input type="number" id="q_chest" placeholder="e.g. 38" step="0.5"></div>
+      <div class="field"><label>Arms (inches)</label><input type="number" id="q_arms" placeholder="e.g. 13" step="0.5"></div>
+    </div>
+    <div class="skip-link" onclick="next()">Skip measurements →</div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- ====== MUSCLE TRACK ====== -->
+  <div class="step" data-id="mg_performance" data-track="muscle">
+    <div class="step-head">
+      <div class="cond-pill">💪 Muscle Gain</div>
+      <div class="step-q">How was your training performance this week?</div>
+    </div>
+    <div class="options">
+      <label class="opt good"><input type="radio" name="perf" value="PRs hit"><div class="opt-face"><span class="oi">🏆</span><div><div>Crushed it — hit new PRs</div></div></div></label>
+      <label class="opt good"><input type="radio" name="perf" value="Strong"><div class="opt-face"><span class="oi">💪</span><div><div>Strong sessions — progressive overload</div></div></div></label>
+      <label class="opt ok"><input type="radio" name="perf" value="Average"><div class="opt-face"><span class="oi">😐</span><div><div>Average — maintained but no gains</div></div></div></label>
+      <label class="opt bad"><input type="radio" name="perf" value="Weak"><div class="opt-face"><span class="oi">😔</span><div><div>Weak sessions — low energy</div></div></div></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="mg_protein" data-track="muscle">
+    <div class="step-head">
+      <div class="cond-pill">💪 Muscle Gain</div>
+      <div class="step-q">Protein & supplement check</div>
+    </div>
+    <div class="field"><label>Estimated daily protein this week (g)</label>
+      <input type="number" id="q_protein_w" placeholder="e.g. 140">
+    </div>
+    <div class="options" style="margin-top:4px;">
+      <label class="opt good"><input type="radio" name="supps_taken" value="All taken"><div class="opt-face"><span class="oi">✅</span>Took all supplements as planned</div></label>
+      <label class="opt ok"><input type="radio" name="supps_taken" value="Missed some"><div class="opt-face"><span class="oi">⚠️</span>Missed some days</div></label>
+      <label class="opt bad"><input type="radio" name="supps_taken" value="Didn't take"><div class="opt-face"><span class="oi">❌</span>Didn't take supplements</div></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="mg_measurements" data-track="muscle">
+    <div class="step-head">
+      <div class="cond-pill">💪 Muscle Gain</div>
+      <div class="step-q">Strength & measurements update</div>
+      <div class="step-hint">Track key lifts or measurements this week</div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Bench Press (kg)</label><input type="number" id="q_bench" placeholder="Max/working weight"></div>
+      <div class="field"><label>Squat (kg)</label><input type="number" id="q_squat" placeholder="Max/working weight"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Deadlift (kg)</label><input type="number" id="q_dead" placeholder="Max/working weight"></div>
+      <div class="field"><label>Other lift / stat</label><input type="text" id="q_other_lift" placeholder="e.g. Pull-ups: 8 reps"></div>
+    </div>
+    <div class="skip-link" onclick="next()">Skip strength data →</div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- ====== SHARED: WELLBEING ====== -->
+  <div class="step" data-id="energy">
+    <div class="step-head">
+      <div class="step-tag">Wellbeing</div>
+      <div class="step-q">How were your energy levels this week?</div>
+    </div>
+    <div class="scale-wrap">
+      <div class="scale-track">
+        <input type="range" id="q_energy" min="1" max="10" value="6" oninput="document.getElementById('energy_val').textContent=this.value">
+        <div class="scale-num" id="energy_val">6</div>
+      </div>
+      <div class="scale-labels"><span>1 — Exhausted all week</span><span>10 — Full of energy</span></div>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="sleep">
+    <div class="step-head">
+      <div class="step-tag">Wellbeing</div>
+      <div class="step-q">How was your sleep this week?</div>
+    </div>
+    <div class="options">
+      <label class="opt good"><input type="radio" name="sleep_w" value="7–8 hrs, good quality"><div class="opt-face"><span class="oi">😴</span>7–8 hours, good quality</div></label>
+      <label class="opt ok"><input type="radio" name="sleep_w" value="6–7 hrs"><div class="opt-face"><span class="oi">🙂</span>6–7 hours — manageable</div></label>
+      <label class="opt bad"><input type="radio" name="sleep_w" value="Less than 6 hrs"><div class="opt-face"><span class="oi">😵</span>Less than 6 hours — sleep deprived</div></label>
+      <label class="opt bad"><input type="radio" name="sleep_w" value="Broken sleep"><div class="opt-face"><span class="oi">🌙</span>Kept waking up / restless nights</div></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="stress">
+    <div class="step-head">
+      <div class="step-tag">Wellbeing</div>
+      <div class="step-q">Stress level this week</div>
+    </div>
+    <div class="scale-wrap">
+      <div class="scale-track">
+        <input type="range" id="q_stress" min="1" max="10" value="5" oninput="document.getElementById('stress_val').textContent=this.value">
+        <div class="scale-num" id="stress_val">5</div>
+      </div>
+      <div class="scale-labels"><span>1 — Very calm</span><span>10 — Extremely stressed</span></div>
+    </div>
+    <div class="field" style="margin-top:16px;"><label>Anything causing major stress this week?</label>
+      <input type="text" id="q_stress_cause" placeholder="e.g. Work deadline, family situation… (optional)">
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="digestion">
+    <div class="step-head">
+      <div class="step-tag">Wellbeing</div>
+      <div class="step-q">How was your digestion & gut this week?</div>
+    </div>
+    <div class="options">
+      <label class="opt good"><input type="radio" name="gut_w" value="Perfect"><div class="opt-face"><span class="oi">💚</span>Perfect — no issues at all</div></label>
+      <label class="opt ok"><input type="radio" name="gut_w" value="Bloating"><div class="opt-face"><span class="oi">🫃</span>Some bloating</div></label>
+      <label class="opt ok"><input type="radio" name="gut_w" value="Constipated"><div class="opt-face"><span class="oi">😣</span>Constipated</div></label>
+      <label class="opt bad"><input type="radio" name="gut_w" value="Acidity"><div class="opt-face"><span class="oi">🔥</span>Acidity / heartburn</div></label>
+      <label class="opt bad"><input type="radio" name="gut_w" value="Loose stools"><div class="opt-face"><span class="oi">💧</span>Loose stools / diarrhoea</div></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="water">
+    <div class="step-head">
+      <div class="step-tag">Habits</div>
+      <div class="step-q">How was your water intake this week?</div>
+    </div>
+    <div class="options">
+      <label class="opt good"><input type="radio" name="water_w" value="3+ litres daily"><div class="opt-face"><span class="oi">💧</span>3+ litres every day</div></label>
+      <label class="opt good"><input type="radio" name="water_w" value="2–3 litres"><div class="opt-face"><span class="oi">🥛</span>2–3 litres most days</div></label>
+      <label class="opt ok"><input type="radio" name="water_w" value="1–2 litres"><div class="opt-face"><span class="oi">⚠️</span>1–2 litres — could drink more</div></label>
+      <label class="opt bad"><input type="radio" name="water_w" value="Less than 1 litre"><div class="opt-face"><span class="oi">❌</span>Less than 1 litre — very dehydrated</div></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- ====== PROGRESS PHOTO ====== -->
+  <div class="step" data-id="photo">
+    <div class="step-head">
+      <div class="step-tag">Progress Photo</div>
+      <div class="step-q">Upload your weekly progress photo</div>
+      <div class="step-hint">Front pose, same time of day, similar lighting each week</div>
+    </div>
+    <label class="photo-zone">
+      <input type="file" accept="image/*" id="q_photo" onchange="photoSelected(this)">
+      <div class="photo-zone-icon" id="photoIcon">📸</div>
+      <div class="photo-zone-text" id="photoText">Tap to upload photo</div>
+      <div class="photo-zone-sub" id="photoSub">Front pose recommended</div>
+    </label>
+    <div class="skip-link" onclick="next()">Skip photo this week →</div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- ====== FINAL ====== -->
+  <div class="step" data-id="wins">
+    <div class="step-head">
+      <div class="step-tag">Reflection</div>
+      <div class="step-q">What was your biggest win this week?</div>
+      <div class="step-hint">Could be anything — no cheat meals, a PR, more energy, a good night's sleep</div>
+    </div>
+    <div class="field"><label>This week's win</label>
+      <textarea id="q_win" placeholder="e.g. I resisted the office cake on Friday! Or I hit my step goal every day…"></textarea>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="challenges">
+    <div class="step-head">
+      <div class="step-tag">Reflection</div>
+      <div class="step-q">What was your biggest challenge?</div>
+      <div class="step-hint">Be honest — this helps us adjust your plan</div>
+    </div>
+    <div class="options">
+      <label class="opt"><input type="radio" name="challenge" value="Cravings"><div class="opt-face"><span class="oi">🍕</span>Cravings & food temptations</div></label>
+      <label class="opt"><input type="radio" name="challenge" value="No time"><div class="opt-face"><span class="oi">⏰</span>No time to cook / exercise</div></label>
+      <label class="opt"><input type="radio" name="challenge" value="Social eating"><div class="opt-face"><span class="oi">🥳</span>Social events / eating out</div></label>
+      <label class="opt"><input type="radio" name="challenge" value="Low motivation"><div class="opt-face"><span class="oi">😔</span>Low motivation or energy</div></label>
+      <label class="opt"><input type="radio" name="challenge" value="Travel"><div class="opt-face"><span class="oi">✈️</span>Travel / being away from home</div></label>
+      <label class="opt"><input type="radio" name="challenge" value="None"><div class="opt-face"><span class="oi">💪</span>No major challenges this week</div></label>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="back()">←</button><button class="btn-next" onclick="next()">Continue →</button></div>
+  </div>
+
+  <div class="step" data-id="feedback">
+    <div class="step-head">
+      <div class="step-tag">Final Step</div>
+      <div class="step-q">Any feedback or questions for your coach?</div>
+      <div class="step-hint">Anything about your plan, meals, workouts — ask away</div>
+    </div>
+    <div class="field"><label>Message to coach</label>
+      <textarea id="q_feedback" placeholder="e.g. Can we swap the Thursday workout? The dal makhani in the plan is too heavy for me…"></textarea>
+    </div>
+    <div class="field"><label>Overall feeling this week</label>
+      <select id="q_overall">
+        <option value="">Select</option>
+        <option>😄 Great — feeling motivated & on track</option>
+        <option>🙂 Good — steady progress</option>
+        <option>😐 Okay — need some adjustments</option>
+        <option>😔 Struggling — need help</option>
+        <option>😤 Frustrated — not seeing results</option>
+      </select>
+    </div>
+    <div class="nav">
+      <button class="btn-back" onclick="back()">←</button>
+      <button class="btn-next btn-submit" onclick="submitForm()">📲 Send to Coach</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- SUCCESS -->
+<div class="success-screen" id="successScreen">
+  <div class="success-burst">🔥</div>
+  <h2>CHECK-IN SENT!</h2>
+  <p>Your Week <strong id="successWeek">—</strong> check-in has been sent to <strong>KickFit Plus</strong>. Your coach will review and respond shortly. Keep going! 💪</p>
+  <br><br>
+  <div style="font-size:12px; color:var(--muted2);">KICKFIT PLUS · Precision. Purpose. Progress.</div>
+</div>
+
+<script>
+// ========== FLOW ==========
+const TRACKS = {
+  pcod:       ['name','goal','weight','compliance','workout_compliance','pcod_hormones','pcod_symptoms','pcod_cravings','energy','sleep','stress','digestion','water','photo','wins','challenges','feedback'],
+  diabetes:   ['name','goal','weight','compliance','workout_compliance','dm_sugar','dm_meds','dm_symptoms','energy','sleep','stress','digestion','water','photo','wins','challenges','feedback'],
+  weightloss: ['name','goal','weight','compliance','workout_compliance','wl_hunger','wl_cheats','wl_measurements','energy','sleep','stress','digestion','water','photo','wins','challenges','feedback'],
+  muscle:     ['name','goal','weight','compliance','workout_compliance','mg_performance','mg_protein','mg_measurements','energy','sleep','stress','water','photo','wins','challenges','feedback'],
+  default:    ['name','goal']
+};
+
+const GOAL_LABELS = { pcod:'🌸 PCOS', diabetes:'🩺 Diabetes', weightloss:'⚖️ Weight Loss', muscle:'💪 Muscle' };
+
+let currentTrack = 'default';
+let currentIdx   = 0;
+
+function setGoal(g) {
+  currentTrack = g;
+  document.getElementById('goalBadge').textContent = GOAL_LABELS[g] || g;
+}
+
+function getFlow() { return TRACKS[currentTrack]; }
+
+function showStep(idx) {
+  const flow = getFlow();
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  const el = document.querySelector(`.step[data-id="${flow[idx]}"]`);
+  if (el) { el.classList.add('active'); window.scrollTo({ top:0, behavior:'smooth' }); }
+  document.getElementById('stepNum').textContent   = idx + 1;
+  document.getElementById('stepTotal').textContent = flow.length;
+  document.getElementById('progressFill').style.width = ((idx+1)/flow.length*100) + '%';
+}
+
+function next() { if (currentIdx < getFlow().length-1) { currentIdx++; showStep(currentIdx); } }
+function back() { if (currentIdx > 0) { currentIdx--; showStep(currentIdx); } }
+
+// Weight display
+function updateWeightDisplay(v) {
+  document.getElementById('weightDisplay').innerHTML = v ? `${v}<span>kg</span>` : `—<span>kg</span>`;
+  calcChange();
+}
+function calcChange() {
+  const cur  = parseFloat(document.getElementById('q_weight')?.value);
+  const last = parseFloat(document.getElementById('q_last_weight')?.value);
+  const el   = document.getElementById('weightChange');
+  if (!el) return;
+  if (cur && last) {
+    const diff = (cur - last).toFixed(1);
+    if (diff < 0)      el.innerHTML = `<span style="color:var(--green)">▼ ${Math.abs(diff)} kg lost this week 🎉</span>`;
+    else if (diff > 0) el.innerHTML = `<span style="color:#E74C3C">▲ ${diff} kg gained this week</span>`;
+    else               el.innerHTML = `<span style="color:var(--muted)">No change from last week</span>`;
+  } else {
+    el.textContent = 'Enter both weights to see change';
+  }
+}
+
+// Photo
+function photoSelected(input) {
+  if (input.files && input.files[0]) {
+    document.getElementById('photoIcon').textContent = '✅';
+    document.getElementById('photoText').textContent = input.files[0].name;
+    document.getElementById('photoSub').textContent  = 'Photo ready to send';
+  }
+}
+
+// Helpers
+function getChecked(name) {
+  return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(i => i.value).join(', ') || '—';
+}
+function val(id) { const e = document.getElementById(id); return e ? (e.value || '—') : '—'; }
+
+// SUBMIT
+function submitForm() {
+  const g   = currentTrack;
+  const gl  = GOAL_LABELS[g] || g;
+  const wk  = val('q_week');
+  const cur = val('q_weight');
+  const lst = val('q_last_weight');
+  const diff = (parseFloat(cur) && parseFloat(lst)) ? ((parseFloat(cur)-parseFloat(lst)).toFixed(1)) : '—';
+  const diffTxt = diff !== '—' ? (diff < 0 ? `▼ ${Math.abs(diff)} kg lost` : diff > 0 ? `▲ ${diff} kg gained` : 'No change') : '—';
+
+  let msg = `🏋️ *KICKFIT PLUS — WEEK ${wk} CHECK-IN*\n`;
+  msg += `━━━━━━━━━━━━━━━━━━\n`;
+  msg += `👤 *${val('q_name')}*   |   Goal: ${gl}\n\n`;
+
+  msg += `⚖️ *WEIGHT*\nThis week: ${cur} kg\nLast week: ${lst} kg\nChange: ${diffTxt}\n\n`;
+
+  msg += `📋 *COMPLIANCE*\nDiet: ${getChecked('diet_compliance')}\nWorkouts done: ${getChecked('workout_done')}\n\n`;
+
+  if (g === 'pcod') {
+    msg += `🌸 *PCOD/PCOS*\nCycle status: ${getChecked('cycle_week')}\nSymptoms: ${getChecked('pcod_sym_w')}\nCravings: ${getChecked('cravings')}\n\n`;
+  } else if (g === 'diabetes') {
+    msg += `🩺 *DIABETES*\nFasting BS: ${val('q_fbs_w')} mg/dL\nPost-meal BS: ${val('q_ppbs_w')} mg/dL\nHypo episodes: ${val('q_hypo')}\nMed compliance: ${getChecked('med_compliance')}\nMed update: ${val('q_dm_update')}\nSymptoms: ${getChecked('dm_sym_w')}\n\n`;
+  } else if (g === 'weightloss') {
+    msg += `⚖️ *WEIGHT LOSS*\nHunger: ${getChecked('hunger')}\nCheats: ${getChecked('cheat')}\nCheat food: ${val('q_cheat_food')}\nWaist: ${val('q_waist')}" | Hips: ${val('q_hips')}" | Chest: ${val('q_chest')}" | Arms: ${val('q_arms')}"\n\n`;
+  } else if (g === 'muscle') {
+    msg += `💪 *MUSCLE GAIN*\nPerformance: ${getChecked('perf')}\nProtein intake: ${val('q_protein_w')} g/day\nSupplements: ${getChecked('supps_taken')}\nBench: ${val('q_bench')} kg | Squat: ${val('q_squat')} kg | Deadlift: ${val('q_dead')} kg\nOther: ${val('q_other_lift')}\n\n`;
+  }
+
+  msg += `😴 *WELLBEING*\nEnergy: ${val('q_energy')}/10\nSleep: ${getChecked('sleep_w')}\nStress: ${val('q_stress')}/10\nStress cause: ${val('q_stress_cause')}\nDigestion: ${getChecked('gut_w')}\nWater: ${getChecked('water_w')}\n\n`;
+
+  msg += `🏆 *REFLECTION*\nBiggest win: ${val('q_win')}\nBiggest challenge: ${getChecked('challenge')}\nOverall feeling: ${val('q_overall')}\n\n`;
+  msg += `💬 *MESSAGE TO COACH*\n${val('q_feedback')}\n\n`;
+  msg += `📅 Submitted: ${new Date().toLocaleString('en-IN')}\n✅ KickFit Plus Week ${wk} Check-In`;
+
+  window.open(`https://wa.me/919820743077?text=${encodeURIComponent(msg)}`, '_blank');
+  document.getElementById('successWeek').textContent = wk;
+  document.getElementById('formWrap').style.display = 'none';
+  document.getElementById('successScreen').classList.add('show');
+}
+
+// Init
+showStep(0);
+</script>
+</body>
+</html>
